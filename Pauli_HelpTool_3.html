@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚐 Pauli Help Tool</title>
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --card: #ffffff;
+    --border: #e2e0d8;
+    --text: #1a1a18;
+    --muted: #6b6b65;
+    --accent: #1a6fb5;
+    --accent-bg: #e8f0f9;
+    --warn: #b45309;
+    --warn-bg: #fef3c7;
+    --success: #166534;
+    --success-bg: #dcfce7;
+    --danger: #991b1b;
+    --danger-bg: #fee2e2;
+    --google: #1a7340;
+    --google-bg: #e8f5ee;
+    --google-border: #a7d7bc;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .top-bar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; gap: 12px; height: 56px; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+  .top-bar .logo { font-size: 24px; }
+  .top-bar h1 { font-size: 17px; font-weight: 600; }
+  .top-bar .sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+  .ask-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .ask-row { display: flex; gap: 8px; }
+  .ask-row input { flex: 1; padding: 11px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; color: var(--text); background: var(--bg); outline: none; transition: border .15s; }
+  .ask-row input:focus { border-color: var(--accent); background: #fff; }
+
+  .btn { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; font-weight: 500; transition: all .15s; white-space: nowrap; text-decoration: none; }
+  .btn:hover { background: var(--bg); }
+  .btn-pauli { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-pauli:hover { background: #155fa0; border-color: #155fa0; }
+  .btn-google { background: var(--google); color: #fff; border-color: var(--google); }
+  .btn-google:hover { background: #155f34; border-color: #155f34; }
+  .btn-mic { padding: 10px 13px; font-size: 18px; }
+  .btn-mic.recording { background: var(--danger-bg); border-color: #fca5a5; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+  .chips-section { margin-top: 1.1rem; }
+  .chips-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 6px 13px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all .15s; border: 1px solid; }
+  .chip-pauli { border-color: #c0d4eb; color: var(--accent); background: var(--accent-bg); }
+  .chip-pauli:hover, .chip-pauli.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .chip-google { border-color: var(--google-border); color: var(--google); background: var(--google-bg); }
+  .chip-google:hover { background: var(--google); color: #fff; border-color: var(--google); }
+
+  /* Ergebnis-Bereiche */
+  .results-grid { display: flex; flex-direction: column; gap: 1rem; }
+
+  .result-card { border-radius: var(--radius); border: 2px solid; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .result-card.pauli-card { border-color: var(--accent); }
+  .result-card.google-card { border-color: var(--google); }
+
+  .result-head { display: flex; align-items: center; gap: 10px; padding: .75rem 1.25rem; font-size: 13px; font-weight: 600; }
+  .result-head.pauli-head { background: var(--accent-bg); color: var(--accent); border-bottom: 1px solid #c0d4eb; }
+  .result-head.google-head { background: var(--google-bg); color: var(--google); border-bottom: 1px solid var(--google-border); }
+  .result-head .source-icon { font-size: 16px; }
+
+  .result-body { padding: 1.25rem; background: var(--card); }
+
+  .result-empty { padding: 2rem 1.25rem; text-align: center; color: var(--muted); font-size: 14px; background: var(--card); }
+
+  .phase-pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; margin-left: auto; }
+  .badge-vor { background: var(--warn-bg); color: var(--warn); }
+  .badge-fahrt { background: var(--accent-bg); color: var(--accent); }
+  .badge-platz { background: var(--success-bg); color: var(--success); }
+  .badge-abfahrt { background: var(--danger-bg); color: var(--danger); }
+
+  .answer-text { font-size: 14px; line-height: 1.85; color: var(--text); white-space: pre-wrap; }
+  .warn-line { color: var(--warn); font-weight: 500; }
+
+  /* Google Suchlinks */
+  .google-links { display: flex; flex-direction: column; gap: 8px; }
+  .google-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--google-border); background: var(--google-bg); text-decoration: none; color: var(--google); font-size: 13px; font-weight: 500; transition: all .15s; }
+  .google-link:hover { background: var(--google); color: #fff; border-color: var(--google); }
+  .google-link .link-icon { font-size: 15px; flex-shrink: 0; }
+  .google-link .link-query { flex: 1; }
+  .google-link .link-arrow { margin-left: auto; opacity: .6; }
+
+  .no-result { padding: 1.5rem; text-align: center; color: var(--muted); font-size: 14px; }
+  .no-result strong { display: block; font-size: 15px; margin-bottom: .3rem; color: var(--text); }
+
+  @media (max-width: 520px) {
+    .ask-row { flex-wrap: wrap; }
+    .ask-row input { width: 100%; }
+    .btn-pauli span, .btn-google span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span class="logo">🚐</span>
+  <div>
+    <h1>Pauli Help Tool</h1>
+    <div class="sub">Pilote G720FGJ — offline + Internet</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="ask-card">
+    <div class="ask-row">
+      <input type="text" id="question" placeholder="z.B. Markise, Tempomat, Frischwasser …" />
+      <button class="btn btn-mic" id="micBtn" title="Spracheingabe">🎤</button>
+      <button class="btn btn-pauli" onclick="ask()">📋 <span>Pauli-Anleitung</span></button>
+      <button class="btn btn-google" onclick="googleSearch()">🌐 <span>Internet</span></button>
+    </div>
+
+    <div class="chips-section">
+      <div class="chips-label">📋 Aus Pauli-Anleitung</div>
+      <div class="chips" id="chips-pauli">
+        <button class="chip chip-pauli" data-id="abfahrt-check">✅ Abfahrt-Check</button>
+        <button class="chip chip-pauli" data-id="vor-abfahrt-ladung">🔒 Ladungssicherung</button>
+        <button class="chip chip-pauli" data-id="vor-abfahrt-nav">📱 Navigation</button>
+        <button class="chip chip-pauli" data-id="fahrt-tempo">🚗 Tempo & Masse</button>
+        <button class="chip chip-pauli" data-id="fahrt-manoever">↩️ Kurven & Manövrieren</button>
+        <button class="chip chip-pauli" data-id="fahrt-tempomat">🕹 Tempomat</button>
+        <button class="chip chip-pauli" data-id="platz-niveau">📐 Nivellierung</button>
+        <button class="chip chip-pauli" data-id="platz-frischwasser">💧 Frischwasser</button>
+        <button class="chip chip-pauli" data-id="platz-grauwasser">🚿 Grauwasser</button>
+        <button class="chip chip-pauli" data-id="platz-pipi">🚽 Pipi-Box</button>
+        <button class="chip chip-pauli" data-id="platz-heizung">🔥 Truma Heizung</button>
+        <button class="chip chip-pauli" data-id="platz-bedienteil">🎛 Bedienteil</button>
+        <button class="chip chip-pauli" data-id="platz-markise">⛱ Markise</button>
+        <button class="chip chip-pauli" data-id="platz-strom">⚡ Landstrom</button>
+        <button class="chip chip-pauli" data-id="platz-fenster">🪟 Fenster</button>
+        <button class="chip chip-pauli" data-id="platz-wechselrichter">🔌 Wechselrichter</button>
+        <button class="chip chip-pauli" data-id="platz-wc">🚽 WC</button>
+        <button class="chip chip-pauli" data-id="platz-gas">🔵 Gasherd</button>
+        <button class="chip chip-pauli" data-id="platz-cadac">🥩 Cadac Grill</button>
+        <button class="chip chip-pauli" data-id="platz-klima">❄️ Klimaanlage</button>
+        <button class="chip chip-pauli" data-id="platz-stuetzen">🔧 Kurbelstützen</button>
+        <button class="chip chip-pauli" data-id="platz-teppich">🟩 Teppich</button>
+        <button class="chip chip-pauli" data-id="rep-werkzeug">🛠 Werkzeug</button>
+      </div>
+    </div>
+
+    <div class="chips-section" style="margin-top:.9rem">
+      <div class="chips-label">🌐 Internet-Suche (öffnet Google)</div>
+      <div class="chips">
+        <button class="chip chip-google" onclick="openGoogle('Pilote G720FGJ Bedienungsanleitung')">📄 Bedienungsanleitung</button>
+        <button class="chip chip-google" onclick="openGoogle('Pilote G720FGJ Truma Heizung Bedienung')">🔥 Truma Anleitung</button>
+        <button class="chip chip-google" onclick="openGoogle('Pilote G720FGJ Markise ausfahren')">⛱ Markise Video</button>
+        <button class="chip chip-google" onclick="openGoogle('Wohnmobil Wasseranlage winterfest machen')">❄️ Winterfest machen</button>
+        <button class="chip chip-google" onclick="openGoogle('Pilote G720FGJ Forum Erfahrungen')">💬 Forum & Tipps</button>
+        <button class="chip chip-google" onclick="openGoogle('Cadac Grillo Chef 40 Anleitung')">🥩 Cadac Anleitung</button>
+        <button class="chip chip-google" onclick="openGoogle('Wohnmobil Campingplatz Stellplatz Tipps Schweiz')">🏕 Camping Schweiz</button>
+        <button class="chip chip-google" onclick="openGoogle('Pilote G720FGJ technische Daten')">📐 Technische Daten</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-grid" id="results">
+    <div class="result-card pauli-card">
+      <div class="result-head pauli-head">
+        <span class="source-icon">📋</span> Pauli-Anleitung
+      </div>
+      <div class="result-empty">Thema wählen oder Stichwort eingeben und auf «Pauli-Anleitung» klicken.</div>
+    </div>
+    <div class="result-card google-card">
+      <div class="result-head google-head">
+        <span class="source-icon">🌐</span> Internet-Suche
+      </div>
+      <div class="result-empty">Stichwort eingeben und auf «Internet» klicken — oder einen grünen Chip wählen.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const KB = {
+  "abfahrt-check": {
+    phase:"Abfahrt", thema:"Abfahrt-Checkliste",
+    tags:["abfahrt","abreise","checkliste","losfahren","wegfahren","bevor","bedenken","verlassen"],
+    info:`✅ ABFAHRT-CHECKLISTE
+
+1. 💧 Wasser ablassen
+   → Alle Hähne aufdrehen bis leer
+   → Frischwasser läuft in Grauwassertank
+   → Grauwasser bei Entsorgungsstation ablassen
+
+2. 🪨 Emuk-Kissen
+   → Luft ablassen — erst DANN wegfahren!
+
+3. ⚡ Stromkabel
+   → Vom Fahrzeug abziehen, dann von Campingsteckdose
+
+4. 🔧 Kurbelstützen
+   → Hochdrehen bis sie einrasten (mit Schwung!)
+
+5. ⛱ Markise
+   → Falls dreckig: mit Besen säubern, dann einrollen
+
+6. 🪟 Alle Fenster schliessen und verriegeln
+
+7. 🔒 Alle Aussentüren verriegeln und abschliessen
+
+8. 📱 Garmin Navi verbinden (Bluetooth)
+
+9. 📦 Ladungssicherung prüfen — keine losen Gegenstände!`
+  },
+  "vor-abfahrt-ladung": {
+    phase:"Vor Abfahrt", thema:"Ladungssicherung",
+    tags:["ladung","sicherung","lagertüren","verriegelt","gegenstände","geschosse","backofen","gläser"],
+    info:`✅ Alle Lagertüren aussen verriegeln und abschliessen.
+✅ Ladung gesichert?
+⚠️ Keine losen Gegenstände in der Kabine!
+   Tristar Backofen, Gläser etc. werden bei einem Unfall zu Geschossen.`
+  },
+  "vor-abfahrt-nav": {
+    phase:"Vor Abfahrt", thema:"Navigation",
+    tags:["navi","navigation","garmin","bluetooth","verkehr","app"],
+    info:`📱 Garmin Drive App auf dem Handy starten.
+→ Per Bluetooth mit dem Navi verbinden.
+→ Gibt Echtzeit-Verkehrsinformationen direkt auf dem Navi.`
+  },
+  "fahrt-tempo": {
+    phase:"Fahrt", thema:"Tempo & Abmessungen",
+    tags:["tempo","geschwindigkeit","100","instabil","breite","länge","höhe","abmessungen","235","725","320","einfahrtshöhe","mass","breit","lang","hoch"],
+    info:`🚗 Maximal 100 km/h fahren.
+⚠️ Pauli wird bei höheren Geschwindigkeiten instabil!
+
+📏 Abmessungen:
+   • Breite:  235 cm
+   • Länge:   725 cm
+   • Höhe:    320 cm
+
+⚠️ Einfahrtshöhen immer prüfen — mindestens 320 cm nötig!
+✅ Strassenränder und Signaltafeln beachten.`
+  },
+  "fahrt-manoever": {
+    phase:"Fahrt", thema:"Kurven & Manövrieren",
+    tags:["kurve","radius","manövrieren","rückfahrkamera","einparken","zu zweit","innerorts","rückwärts"],
+    info:`↩️ Kurven fahren:
+   Pauli ist 725 cm lang → immer mit grossem Radius anfahren.
+   Besonders wichtig: innerorts und bei Einfahrt auf Campingplätze.
+
+🔄 Manövrieren / Rückwärtsfahren:
+   Rückfahrkamera vorhanden — aber KEINE Distanzwarner!
+⚠️ Immer zu zweit manövrieren: eine Person draussen zeigt
+   Abstände und Lenkrichtung an.`
+  },
+  "fahrt-tempomat": {
+    phase:"Fahrt", thema:"Tempomat & Lenkrad-Bedienung",
+    tags:["tempomat","set","lim","taste","cruise","lenkrad","radio","lautstärke","mute"],
+    info:`🕹 Tempomat:
+   • Muss bei jeder Fahrt neu eingeschaltet werden
+   • Set+ lang drücken  → 10 km/h Schritte hoch
+   • Set+ kurz drücken  →  1 km/h hoch
+   • Set– entsprechend nach unten
+   • LIM-Taste → setzt eine Höchstgeschwindigkeit
+⚠️ Falls Auto plötzlich kein Gas mehr annimmt → nochmal LIM drücken!
+
+🔊 Radio (Rückseite Lenkrad rechts):
+   Lauter / leiser — mittlerer Knopf = Mute.`
+  },
+  "platz-niveau": {
+    phase:"Auf dem Platz", thema:"Nivellierung",
+    tags:["nivellierung","eben","easylevel","airlift","kissen","emuk","makita","kompressor","anheben","räder"],
+    info:`📐 Pauli muss möglichst eben stehen.
+
+1. Easylevel RV App öffnen
+   → Zeigt welche Räder angehoben werden müssen
+2. Emuk Airlift-Kissen vor/hinter die betreffenden Räder legen
+   (Ventil nach aussen zeigen lassen!)
+3. Mit Makita Akkukompressor aufpumpen und App prüfen
+
+⚠️ Vor Abfahrt: zuerst Luft ablassen — erst DANN wegfahren!`
+  },
+  "platz-frischwasser": {
+    phase:"Auf dem Platz", thema:"Frischwasser auffüllen",
+    tags:["frischwasser","wasser","tank","auffüllen","gardena","wasserzähler","schlauch","tankaufsatz","chemie-wc"],
+    info:`💧 Frischwassertank = 100 Liter.
+   Wegen Gewicht erst auf dem Platz auffüllen.
+
+Ausrüstung (Aussenschublade hinter Fahrertüre unten):
+   • Tankaufsatz mit Gardena-Anschluss und Wasserzähler
+   • Wasserschlauch
+
+⚠️ NIEMALS an der Chemie-WC-Station Wasser auffüllen!`
+  },
+  "platz-grauwasser": {
+    phase:"Auf dem Platz", thema:"Grauwasser entleeren",
+    tags:["grauwasser","abwasser","entleeren","ablassen","zugstange","abwasserbereich"],
+    info:`🚿 Grauwasserentsorgung meist am gleichen Ort wie Frischwasser.
+
+1. Mit Pauli über den Abwasserbereich fahren
+2. Zugstange unter dem Fahrzeug rechts von der Eingangstüre ziehen
+   (braucht Kraft — nicht zu früh aufgeben!)
+
+⚠️ Grauwassertank fasst nur 100 Liter!
+⚠️ Nach vollem Frischwasser-Auffüllen: vor Abfahrt Grauwasser
+   ablassen — wegen Gewicht!`
+  },
+  "platz-pipi": {
+    phase:"Auf dem Platz", thema:"Pipi-Box (Kassettentoilette) leeren",
+    tags:["pipi","pipi-box","kassette","toilette","chemie","entleeren","blau","verriegelung"],
+    info:`🚽 Pipi-Box leeren:
+
+1. Verriegelung unter der Kassette lösen
+2. Kassette herausziehen
+3. An der Chemie-Toilettenstation entleeren
+4. Ausspülen bis das Wasser nicht mehr blau ist`
+  },
+  "platz-heizung": {
+    phase:"Auf dem Platz", thema:"Truma Heizung & Warmwasser",
+    tags:["heizung","heizen","truma","warmwasser","boiler","temperatur"],
+    info:`🔥 Steuerung befindet sich über der Eingangstüre.
+   • Heizt den Wohnraum
+   • Erzeugt Warmwasser
+
+⚠️ WICHTIG: Genügend Frischwasser im Tank muss vorhanden sein!
+   Sonst heizt der Boiler leer → kann zu brennen anfangen!`
+  },
+  "platz-bedienteil": {
+    phase:"Auf dem Platz", thema:"Bedienteil am Eingang",
+    tags:["bedienteil","tasten","wasserpumpe","licht","strom","radio","eingang"],
+    info:`🎛 Bedienteil am Eingang — drei Tasten für Normalbetrieb:
+   • Taste 1: Licht
+   • Taste 2: Wasserpumpe
+   • Taste 3: 12V-Strom (Innenraum)
+   → Alle drei aktivieren!
+
+   • Taste 4: Radio ohne Fahrzeugzündung`
+  },
+  "platz-markise": {
+    phase:"Auf dem Platz", thema:"Markise ausfahren & einrollen",
+    tags:["markise","sonnenstore","store","ausfahren","einrollen","kurbel","stützen","diagonalstreben","ankerplatten","besen","sichern"],
+    info:`⛱ Markise ausfahren:
+1. Mit Kurbel rausdrehen bis 2. Person stützen kann
+2. Stützen: Arretierung lösen, Beine ausfahren, leicht nach vorne
+   geneigt aufstellen, Klemme einrasten (nach oben, hat Widerstand)
+3. Weiter rausdrehen bis ca. 95%
+4. Stützen anpassen: Markisenfront parallel zum Boden
+5. Kurze Diagonalstreben einrasten (zusätzliche Stabilisierung!)
+6. Sichern mit orangen/blauen Ankerplatten + Akkuschrauber
+
+✅ Vor Abfahrt:
+   Falls Blätter/Dreck auf der Markise → mit Besen säubern,
+   dann einrollen. Besen + Leiter sind in der Heckgarage.`
+  },
+  "platz-strom": {
+    phase:"Auf dem Platz", thema:"Landstrom anschliessen",
+    tags:["landstrom","kabel","kabeltrommel","stecker","anschliessen","blauer deckel","wegfahrsperre","abrollen"],
+    info:`⚡ Kabeltrommel: Aussenschublade hinter Fahrertüre.
+
+✅ Reihenfolge einhalten:
+1. Kabel vollständig abrollen
+2. An Campingplatz-Steckdose anstecken
+3. DANN ans Fahrzeug anschliessen
+   (Sonst verdreht sich das Kabel!)
+
+Anschlusskabel: blauer Deckel aufklappen → einstecken → rastet ein.
+Zum Abziehen: Deckel leicht anheben.
+
+⚠️ KEINE Wegfahrsperre vorhanden!
+   Kabelverbindung VOR Abfahrt unbedingt lösen!`
+  },
+  "platz-fenster": {
+    phase:"Auf dem Platz", thema:"Fenster öffnen",
+    tags:["fenster","öffnen","verriegelungsknopf","verschluss","kaputt"],
+    info:`🪟 Fenster öffnen NUR bei gleichzeitigem Drücken des Verriegelungsknopfs!
+⚠️ NICHT ohne Knopf öffnen — sonst geht der Verschluss kaputt!`
+  },
+  "platz-wechselrichter": {
+    phase:"Auf dem Platz", thema:"Wechselrichter (230V)",
+    tags:["wechselrichter","230v","kaffeemaschine","föhn","steckdose","drucktaster","küche","12v"],
+    info:`🔌 Grundversorgung ist 12V.
+   Kaffeemaschine, Föhn und normale 230V-Geräte laufen damit nicht!
+
+Wechselrichter einschalten:
+→ Runder Drucktaster in der Küche, an der Wand links.`
+  },
+  "platz-wc": {
+    phase:"Auf dem Platz", thema:"WC benutzen",
+    tags:["wc","toilette","schieber","spülen","mufft","füllstand"],
+    info:`🚽 WC benutzen:
+1. Schieber vorne am WC aufziehen (VOR Benutzung!)
+2. Benutzen und spülen
+3. Schieber wieder schliessen — sonst mufft es!
+
+⚠️ Füllstand der Pipi-Box regelmässig prüfen!
+   Bei Überlauf gibt es eine Riesenschweinerei.`
+  },
+  "platz-gas": {
+    phase:"Auf dem Platz", thema:"Gasherd",
+    tags:["gas","herd","kochen","gashahn","kollisionssicherung","zündknopf","anzünden","ausschalten"],
+    info:`🔵 Gasherd — Voraussetzungen:
+   • Gasflasche angeschlossen (Aussenfach)
+   • Kollisionssicherung (schwarzer Knopf am Ventil) kurz drücken
+   • Gashahn komplett aufdrehen
+   • Bedientableau: 3. Knopf einschalten (sonst keine Zündung!)
+
+Anzünden:
+   Regler drücken + gleichzeitig nach links drehen
+   → sofort Zündknopf drücken
+
+Ausschalten:
+   Regler nach rechts drehen bis Gas aus.`
+  },
+  "platz-cadac": {
+    phase:"Auf dem Platz", thema:"Cadac Grill",
+    tags:["cadac","grill","grillen","30mbar","druckregler","schlauch","grillo"],
+    info:`🥩 Cadac Grillo Chef 40
+   • 30mBar Druckregler
+   • Schlauch bereits angeschlossen
+✅ Aufbau wie im Aufstellvideo gezeigt.`
+  },
+  "platz-klima": {
+    phase:"Auf dem Platz", thema:"Klimaanlage",
+    tags:["klima","klimaanlage","kühlen","fernbedienung","empfänger","mode","lüfter","landstrom"],
+    info:`❄️ Fernbedienung liegt am Eingang.
+→ Auf schwarzen Empfänger an der Decke zielen → einschalten.
+   • Temperatur: + / – Tasten
+   • Lüfterstärke: Taste unterhalb «Mode»
+⚠️ Funktioniert NUR mit Landstrom!`
+  },
+  "platz-stuetzen": {
+    phase:"Auf dem Platz", thema:"Kurbelstützen",
+    tags:["kurbelstützen","stützen","kurbel","grüner schlauch","einrasten","lenkrad"],
+    info:`🔧 Kurbel mit grünem Schlauch verwenden.
+
+✅ Trick gegen Vergessen:
+   Kurbel beim Lenkrad ablegen → Erinnerung für die Abfahrt!
+
+Beim Hochdrehen: mit Schwung drehen damit die Stützen richtig einrasten.`
+  },
+  "platz-teppich": {
+    phase:"Auf dem Platz", thema:"Teppich",
+    tags:["teppich","auslegen","etikette","250","500","seite"],
+    info:`🟩 Teppich: 250 × 500 cm.
+   Grüne Etikette = Oberseite.
+✅ Immer die gleiche Seite oben lassen — damit nur eine Seite dreckig wird.`
+  },
+  "rep-werkzeug": {
+    phase:"Reparaturen", thema:"Werkzeugkiste",
+    tags:["werkzeug","reparatur","kiste","klebeband","kabelbinder","garage"],
+    info:`🛠 Werkzeugkiste: hinten in der Garage, fahrerseitig.
+   Enthält: allgemeines Werkzeug, Kleberollen, Kabelbinder etc.`
+  }
+};
+
+function phaseClass(p) {
+  if(p.includes('Vor')) return 'badge-vor';
+  if(p.includes('Fahrt')) return 'badge-fahrt';
+  if(p.includes('Platz')) return 'badge-platz';
+  return 'badge-abfahrt';
+}
+
+function norm(s) {
+  return s.toLowerCase()
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');
+}
+
+function renderPauliResult(item) {
+  const pc = phaseClass(item.phase);
+  const lines = item.info.split('\n').map(line => {
+    const esc = line.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return line.startsWith('⚠️') ? `<span class="warn-line">${esc}</span>` : esc;
+  }).join('\n');
+  return `
+    <div class="result-card pauli-card">
+      <div class="result-head pauli-head">
+        <span class="source-icon">📋</span>
+        Pauli-Anleitung
+        <span class="phase-pill ${pc}">${item.phase}</span>
+      </div>
+      <div class="result-body">
+        <div style="font-size:16px;font-weight:600;margin-bottom:.75rem">${item.thema}</div>
+        <div class="answer-text">${lines}</div>
+      </div>
+    </div>`;
+}
+
+function renderGoogleResult(query) {
+  const base = 'https://www.google.com/search?q=';
+  const queries = [
+    { icon:'🔍', label: query + ' — Google-Suche', q: query },
+    { icon:'▶️', label: query + ' — YouTube Videos', q: query + ' site:youtube.com' },
+    { icon:'💬', label: query + ' — Forum & Erfahrungen', q: query + ' Forum Erfahrungen' },
+  ];
+  const links = queries.map(({icon, label, q}) =>
+    `<a class="google-link" href="${base}${encodeURIComponent(q)}" target="_blank" rel="noopener">
+      <span class="link-icon">${icon}</span>
+      <span class="link-query">${label}</span>
+      <span class="link-arrow">↗</span>
+    </a>`
+  ).join('');
+  return `
+    <div class="result-card google-card">
+      <div class="result-head google-head">
+        <span class="source-icon">🌐</span>
+        Internet-Suche für «${query}»
+      </div>
+      <div class="result-body">
+        <div class="google-links">${links}</div>
+      </div>
+    </div>`;
+}
+
+function showEntry(id) {
+  document.querySelectorAll('.chip-pauli').forEach(c => c.classList.remove('active'));
+  const chip = document.querySelector(`.chip-pauli[data-id="${id}"]`);
+  if(chip) chip.classList.add('active');
+  const item = KB[id];
+  const googleQuery = 'Pilote G720FGJ ' + item.thema;
+  document.getElementById('results').innerHTML =
+    renderPauliResult(item) + renderGoogleResult(googleQuery);
+}
+
+function ask() {
+  const q = document.getElementById('question').value.trim();
+  if(!q) return;
+  document.querySelectorAll('.chip-pauli').forEach(c => c.classList.remove('active'));
+  const nq = norm(q);
+  const words = nq.split(/[\s,?!.]+/).filter(w => w.length > 2);
+
+  const scored = Object.entries(KB).map(([id, item]) => {
+    let score = 0;
+    const normTags = item.tags.map(norm);
+    const normThema = norm(item.thema);
+    words.forEach(w => {
+      if(normTags.some(t => t === w || t.startsWith(w) || w.startsWith(t))) score += 10;
+      else if(normThema.includes(w)) score += 6;
+      else if(normTags.some(t => t.includes(w))) score += 3;
+    });
+    return {id, item, score};
+  }).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
+
+  const googleQuery = 'Pilote G720FGJ ' + q;
+  const googleHtml = renderGoogleResult(googleQuery);
+
+  if(scored.length === 0) {
+    document.getElementById('results').innerHTML = `
+      <div class="result-card pauli-card">
+        <div class="result-head pauli-head"><span class="source-icon">📋</span> Pauli-Anleitung</div>
+        <div class="no-result"><strong>Nichts gefunden</strong>Versuche: Markise · Tempomat · Frischwasser · Heizung · Strom · WC</div>
+      </div>` + googleHtml;
+    return;
+  }
+
+  const best = scored[0].score;
+  const top = scored.filter(x => x.score >= best * 0.8).slice(0, 2);
+
+  if(top.length === 1) {
+    document.getElementById('results').innerHTML = renderPauliResult(top[0].item) + googleHtml;
+  } else {
+    const items = top.map(({id, item}) => {
+      const pc = phaseClass(item.phase);
+      return `<div style="padding:.75rem 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showEntry('${id}')">
+        <span class="phase-pill ${pc}" style="margin-right:8px">${item.phase}</span>
+        <span style="font-weight:600">${item.thema}</span>
+        <span style="float:right;color:var(--muted);font-size:13px">→</span>
+      </div>`;
+    }).join('');
+    document.getElementById('results').innerHTML = `
+      <div class="result-card pauli-card">
+        <div class="result-head pauli-head"><span class="source-icon">📋</span> Pauli-Anleitung — Meinst du…?</div>
+        <div class="result-body">${items}</div>
+      </div>` + googleHtml;
+  }
+}
+
+function googleSearch() {
+  const q = document.getElementById('question').value.trim();
+  if(!q) { alert('Bitte zuerst ein Stichwort eingeben.'); return; }
+  openGoogle('Pilote G720FGJ ' + q);
+}
+
+function openGoogle(query) {
+  window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank', 'noopener');
+}
+
+// Chip-Klick Pauli
+document.getElementById('chips-pauli').addEventListener('click', e => {
+  const chip = e.target.closest('.chip-pauli');
+  if(!chip) return;
+  document.getElementById('question').value = '';
+  showEntry(chip.dataset.id);
+});
+
+document.getElementById('question').addEventListener('keydown', e => { if(e.key === 'Enter') ask(); });
+
+// Spracheingabe
+const micBtn = document.getElementById('micBtn');
+if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'de-DE'; rec.continuous = false; rec.interimResults = false;
+  let running = false;
+  rec.onresult = e => {
+    const t = e.results[0][0].transcript;
+    document.getElementById('question').value = t;
+    micBtn.classList.remove('recording');
+    micBtn.textContent = '🎤';
+    running = false;
+    ask();
+  };
+  rec.onend = () => { micBtn.classList.remove('recording'); micBtn.textContent = '🎤'; running = false; };
+  rec.onerror = () => { micBtn.classList.remove('recording'); micBtn.textContent = '🎤'; running = false; };
+  micBtn.onclick = () => {
+    if(running) { rec.stop(); }
+    else { running = true; micBtn.classList.add('recording'); micBtn.textContent = '⏹'; rec.start(); }
+  };
+} else {
+  micBtn.style.opacity = '.4';
+  micBtn.style.cursor = 'not-allowed';
+  micBtn.title = 'Spracheingabe nicht verfügbar (Chrome empfohlen)';
+}
+</script>
+</body>
+</html>
